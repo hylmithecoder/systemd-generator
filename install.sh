@@ -53,6 +53,13 @@ fi
 
 chmod +x "$TMP_DIR/$BINARY_NAME"
 
+# Get binary size for transparency
+if command -v du &> /dev/null; then
+    BIN_SIZE=$(du -h "$TMP_DIR/$BINARY_NAME" | cut -f1)
+else
+    BIN_SIZE=$(ls -lh "$TMP_DIR/$BINARY_NAME" | awk '{print $5}')
+fi
+
 INSTALL_DIR="/usr/local/bin"
 
 if [ -w "$INSTALL_DIR" ]; then
@@ -72,6 +79,7 @@ fi
 
 echo -e "${GREEN}====================================================${NC}"
 echo -e "${GREEN} SUCCESS! ${BINARY_NAME} installed successfully.${NC}"
+echo -e "${GREEN} Binary Size: ${YELLOW}${BIN_SIZE}${NC} ${GREEN}(Statically Linked Binary)${NC}"
 echo -e "${GREEN} Executables installed to:${NC}"
 echo -e "${CYAN}   - ${INSTALL_DIR}/${BINARY_NAME}${NC}"
 echo -e "${CYAN}   - ${INSTALL_DIR}/${SYMLINK_NAME}${NC}"
