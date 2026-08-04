@@ -8,7 +8,7 @@ It automatically inspects target system/device hardware specs and enforces direc
 
 ## Quick Installation
 
-Run the one-line installer using `curl` or `wget` to automatically download and install `systemdgenerator-v1.0` to `/usr/local/bin`:
+Run the one-line installer using `curl` or `wget` to automatically download and install the **fully statically linked binary** `systemdgenerator-v1.0` to `/usr/local/bin`:
 
 ### Using `curl`:
 ```bash
@@ -24,6 +24,7 @@ wget -qO- https://raw.githubusercontent.com/hylmithecoder/systemd-generator/mast
 
 ## Features
 
+- **Statically Linked Binary**: Built with `x86_64-unknown-linux-musl` target so it runs seamlessly on **any Linux distribution** without dynamic glibc dependency issues.
 - **Binary Location Derivation**: Strips quotes and automatically resolves app name and executable filename, mapping binaries consistently to `/opt/<app_name>/<binary_name>`.
 - **Target Device Environment Inspection**: Auto-detects Hostname, OS Distribution & Version, CPU Architecture, Kernel, and active User.
 - **Interactive TUI Form**: Configure service properties including `ExecStart`, `WorkingDirectory`, `User`, `Group`, `Restart` policy, `Environment` variables, and custom CLI flags using `Ratatui`.
@@ -43,14 +44,15 @@ Clone the repository and run:
 ./install.sh
 ```
 
-### Manual Cargo Build
+### Manual Cargo Build (Static musl binary)
 
-Build the binary directly with Cargo:
+Build the static binary directly with Cargo:
 ```bash
-cargo build --release
+rustup target add x86_64-unknown-linux-musl
+cargo build --release --target x86_64-unknown-linux-musl
 ```
 
-The compiled binary will be placed at `target/release/systemdfilegenerator`.
+The static compiled binary will be placed at `target/x86_64-unknown-linux-musl/release/systemdfilegenerator`.
 
 ---
 

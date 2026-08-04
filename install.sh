@@ -22,7 +22,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 DOWNLOAD_SUCCESS=false
 
-echo -e "${GREEN}--> Downloading prebuilt binary from GitHub Release (v1.0)...${NC}"
+echo -e "${GREEN}--> Downloading static prebuilt binary from GitHub Release (v1.0)...${NC}"
 if command -v curl &> /dev/null; then
     if curl -fsSL "$RELEASE_URL" -o "$TMP_DIR/$BINARY_NAME"; then
         DOWNLOAD_SUCCESS=true
@@ -36,9 +36,15 @@ fi
 if [ "$DOWNLOAD_SUCCESS" = false ]; then
     echo -e "${YELLOW}--> Download from GitHub release v1.0 not yet available or failed.${NC}"
     if command -v cargo &> /dev/null; then
-        echo -e "${GREEN}--> Compiling locally from source with Cargo...${NC}"
-        cargo build --release
-        cp target/release/systemdfilegenerator "$TMP_DIR/$BINARY_NAME"
+        echo -e "${GREEN}--> Compiling static binary locally from source with Cargo (musl)...${NC}"
+        rustup target add x86_64-unknown-linux-musl 2>/dev/null || true
+        cargo build --release --target x86_64-unknown-linux-musl || cargo build --release
+        
+        if [ -f "target/x86_64-unknown-linux-musl/release/systemdfilegenerator" ]; then
+            cp target/x86_64-unknown-linux-musl/release/systemdfilegenerator "$TMP_DIR/$BINARY_NAME"
+        else
+            cp target/release/systemdfilegenerator "$TMP_DIR/$BINARY_NAME"
+        fi
     else
         echo -e "${RED}Error: Could not download release binary and Cargo is not installed.${NC}"
         exit 1
