@@ -6,6 +6,22 @@ It automatically inspects target system/device hardware specs and enforces direc
 
 ---
 
+## Quick Installation
+
+Run the one-line installer using `curl` or `wget` to automatically download and install `systemdgenerator-v1.0` to `/usr/local/bin`:
+
+### Using `curl`:
+```bash
+curl -fsSL https://raw.githubusercontent.com/hylmithecoder/systemd-generator/master/install.sh | bash
+```
+
+### Using `wget`:
+```bash
+wget -qO- https://raw.githubusercontent.com/hylmithecoder/systemd-generator/master/install.sh | bash
+```
+
+---
+
 ## Features
 
 - **Binary Location Derivation**: Strips quotes and automatically resolves app name and executable filename, mapping binaries consistently to `/opt/<app_name>/<binary_name>`.
@@ -18,18 +34,16 @@ It automatically inspects target system/device hardware specs and enforces direc
 
 ---
 
-## Installation
+## Other Installation Methods
 
-### Method 1: Using `install.sh` (Recommended)
+### Local `install.sh`
 
-Run the automated installer script:
+Clone the repository and run:
 ```bash
 ./install.sh
 ```
 
-This compiles the release binary and installs `systemdgenerator-v1.0` (with a `systemdgenerator` symlink) into `/usr/local/bin/`.
-
-### Method 2: Manual Cargo Build
+### Manual Cargo Build
 
 Build the binary directly with Cargo:
 ```bash
@@ -46,8 +60,8 @@ Start the interactive TUI application:
 
 ```bash
 systemdgenerator-v1.0
-# Or using Cargo:
-cargo run
+# Or using the symlink:
+systemdgenerator
 ```
 
 ### TUI Workflow & Controls
