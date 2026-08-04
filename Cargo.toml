@@ -1,0 +1,10 @@
+[package]
+name = "systemdfilegenerator"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+sysinfo = "0.33"
+anyhow = "1.0"
