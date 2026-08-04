@@ -63,24 +63,53 @@ else
     BIN_SIZE=$(ls -lh "$TMP_DIR/$BINARY_NAME" | awk '{print $5}')
 fi
 
-INSTALL_DIR="/usr/local/bin"
+# Determine target binary installation directory (/usr/local/bin, /usr/bin, /bin, or ~/.local/bin)
+TARGET_DIRS=("/usr/local/bin" "/usr/bin" "/bin" "$HOME/.local/bin")
+INSTALL_DIR=""
 
-if [ -w "$INSTALL_DIR" ]; then
-    cp "$TMP_DIR/$BINARY_NAME" "${INSTALL_DIR}/${BINARY_NAME}"
-    chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
-    ln -sf "${BINARY_NAME}" "${INSTALL_DIR}/${SYMLINK_NAME}"
-else
-    if command -v sudo &> /dev/null && sudo cp "$TMP_DIR/$BINARY_NAME" "${INSTALL_DIR}/${BINARY_NAME}" 2>/dev/null; then
+for dir in "${TARGET_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        if [ -w "$dir" ]; then
+            INSTALL_DIR="$dir"
+            USE_SUDO=false
+            break
+        elif command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
+            INSTALL_DIR="$dir"
+            USE_SUDO=true
+            break
+        elif command -v sudo &> /dev/null; then
+            INSTALL_DIR="$dir"
+            USE_SUDO=true
+            break
+        fi
+    fi
+done
+
+if [ -z "$INSTALL_DIR" ]; then
+    INSTALL_DIR="$HOME/.local/bin"
+    USE_SUDO=false
+fi
+
+mkdir -p "$INSTALL_DIR" 2>/dev/null || true
+
+echo -e "${GREEN}--> Installing binary to ${INSTALL_DIR}/${BINARY_NAME}...${NC}"
+
+if [ "$USE_SUDO" = true ]; then
+    if sudo cp "$TMP_DIR/$BINARY_NAME" "${INSTALL_DIR}/${BINARY_NAME}" 2>/dev/null; then
         sudo chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
         sudo ln -sf "${BINARY_NAME}" "${INSTALL_DIR}/${SYMLINK_NAME}"
     else
-        echo -e "${YELLOW}Notice: Cannot write to /usr/local/bin directly. Installing to ~/.local/bin...${NC}"
+        echo -e "${YELLOW}Notice: sudo operation failed or restricted. Installing to ~/.local/bin...${NC}"
         INSTALL_DIR="$HOME/.local/bin"
         mkdir -p "$INSTALL_DIR"
         cp "$TMP_DIR/$BINARY_NAME" "${INSTALL_DIR}/${BINARY_NAME}"
         chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
         ln -sf "${BINARY_NAME}" "${INSTALL_DIR}/${SYMLINK_NAME}"
     fi
+else
+    cp "$TMP_DIR/$BINARY_NAME" "${INSTALL_DIR}/${BINARY_NAME}"
+    chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+    ln -sf "${BINARY_NAME}" "${INSTALL_DIR}/${SYMLINK_NAME}"
 fi
 
 echo -e "${GREEN}====================================================${NC}"
