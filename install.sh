@@ -9,9 +9,9 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-BINARY_NAME="systemdgenerator-v1.0"
+BINARY_NAME="servicefilegenerator"
 SYMLINK_NAME="systemdgenerator"
-RELEASE_URL="https://github.com/hylmithecoder/systemd-generator/releases/download/v1.0/systemdfilegenerator"
+RELEASE_URL="https://github.com/hylmithecoder/systemd-generator/releases/download/v1.0/servicefilegenerator"
 
 echo -e "${CYAN}====================================================${NC}"
 echo -e "${CYAN} Installing ${YELLOW}${BINARY_NAME}${NC}"
@@ -36,12 +36,16 @@ fi
 if [ "$DOWNLOAD_SUCCESS" = false ] || [ ! -s "$TMP_DIR/$BINARY_NAME" ]; then
     echo -e "${YELLOW}--> GitHub release v1.0 binary not found online (404/Not Uploaded).${NC}"
     if command -v cargo &> /dev/null; then
-        echo -e "${GREEN}--> Compiling static binary locally from source with Cargo (musl)...${NC}"
+        echo -e "${GREEN}--> Compiling static binary locally from source with Cargo (musl target)...${NC}"
         rustup target add x86_64-unknown-linux-musl 2>/dev/null || true
         cargo build --release --target x86_64-unknown-linux-musl || cargo build --release
         
-        if [ -f "target/x86_64-unknown-linux-musl/release/systemdfilegenerator" ]; then
+        if [ -f "target/x86_64-unknown-linux-musl/release/servicefilegenerator" ]; then
+            cp "target/x86_64-unknown-linux-musl/release/servicefilegenerator" "$TMP_DIR/$BINARY_NAME"
+        elif [ -f "target/x86_64-unknown-linux-musl/release/systemdfilegenerator" ]; then
             cp "target/x86_64-unknown-linux-musl/release/systemdfilegenerator" "$TMP_DIR/$BINARY_NAME"
+        elif [ -f "target/release/servicefilegenerator" ]; then
+            cp "target/release/servicefilegenerator" "$TMP_DIR/$BINARY_NAME"
         elif [ -f "target/release/systemdfilegenerator" ]; then
             cp "target/release/systemdfilegenerator" "$TMP_DIR/$BINARY_NAME"
         else
@@ -120,3 +124,4 @@ echo -e "${CYAN}   - ${INSTALL_DIR}/${BINARY_NAME}${NC}"
 echo -e "${CYAN}   - ${INSTALL_DIR}/${SYMLINK_NAME}${NC}"
 echo -e "${GREEN}====================================================${NC}"
 echo -e "Run '${YELLOW}${BINARY_NAME}${NC}' or '${YELLOW}${SYMLINK_NAME}${NC}' in your terminal."
+

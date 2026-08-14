@@ -53,7 +53,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .title(Span::styled(
-                    " Systemd Service Generator TUI ",
+                    " Service File Generator TUI ",
                     Style::default()
                         .fg(Color::Cyan)
                         .add_modifier(Modifier::BOLD),
@@ -73,6 +73,14 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
 
 fn render_device_info(f: &mut Frame, app: &App, area: Rect) {
     let sys = &app.sys_info;
+    let target_str = app.target_init_system.as_str();
+    let is_detected = app.target_init_system == sys.init_system;
+    let init_badge = if is_detected {
+        format!("{} (Auto-detected)", target_str)
+    } else {
+        format!("{} (Manual)", target_str)
+    };
+
     let text = vec![Line::from(vec![
         Span::styled("Host: ", Style::default().fg(Color::DarkGray)),
         Span::styled(
@@ -91,11 +99,16 @@ fn render_device_info(f: &mut Frame, app: &App, area: Rect) {
         Span::styled("Arch: ", Style::default().fg(Color::DarkGray)),
         Span::styled(&sys.cpu_arch, Style::default().fg(Color::Magenta)),
         Span::raw(" | "),
-        Span::styled("Kernel: ", Style::default().fg(Color::DarkGray)),
-        Span::styled(&sys.kernel_version, Style::default().fg(Color::Cyan)),
+        Span::styled("Init: ", Style::default().fg(Color::DarkGray)),
+        Span::styled(
+            init_badge,
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" | "),
         Span::styled("User: ", Style::default().fg(Color::DarkGray)),
-        Span::styled(&sys.current_user, Style::default().fg(Color::Yellow)),
+        Span::styled(&sys.current_user, Style::default().fg(Color::LightGreen)),
     ])];
 
     let p = Paragraph::new(text).block(
@@ -202,7 +215,7 @@ fn render_service_config(f: &mut Frame, app: &App, area: Rect) {
     let main_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" Service Unit Configuration (Use Tab / Shift+Tab to switch fields) ");
+        .title(" Service Configuration (Use Tab / Shift+Tab to switch fields) ");
 
     let inner_area = main_block.inner(area);
     f.render_widget(main_block, area);
@@ -282,11 +295,16 @@ fn render_preview_deploy(f: &mut Frame, app: &App, area: Rect) {
         ])
         .split(area);
 
+    let preview_title = match app.target_init_system {
+        crate::device::InitSystem::Systemd => " Generated Systemd .service Unit Content ",
+        crate::device::InitSystem::OpenRC => " Generated OpenRC Init Script Content ",
+    };
+
     // Render Preview
     let preview_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" Generated systemd .service Unit Content ");
+        .title(preview_title);
 
     let preview_p = Paragraph::new(app.generated_service_content.as_str())
         .block(preview_block)
@@ -308,7 +326,7 @@ fn render_preview_deploy(f: &mut Frame, app: &App, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(4), // Option 0: Save local
-            Constraint::Length(4), // Option 1: Deploy /etc/systemd/system
+            Constraint::Length(4), // Option 1: Deploy to system
             Constraint::Min(2),
         ])
         .split(action_inner);
@@ -331,10 +349,21 @@ fn render_preview_deploy(f: &mut Frame, app: &App, area: Rect) {
         Style::default().bg(Color::DarkGray).fg(Color::White)
     };
 
-    let p0 = Paragraph::new("\n [1] Save Unit File Locally ")
+    let (label0, label1) = match app.target_init_system {
+        crate::device::InitSystem::Systemd => (
+            "\n [1] Save Unit File Locally ",
+            "\n [2] Copy to /etc/systemd/system & Deploy ",
+        ),
+        crate::device::InitSystem::OpenRC => (
+            "\n [1] Save Init Script Locally ",
+            "\n [2] Copy to /etc/init.d & Enable ",
+        ),
+    };
+
+    let p0 = Paragraph::new(label0)
         .alignment(Alignment::Center)
         .style(btn0_style);
-    let p1 = Paragraph::new("\n [2] Copy to /etc/systemd/system & Deploy ")
+    let p1 = Paragraph::new(label1)
         .alignment(Alignment::Center)
         .style(btn1_style);
 
@@ -372,12 +401,14 @@ fn render_status_modal(f: &mut Frame, app: &App) {
 
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let text = match app.step {
-        ActiveStep::BinaryPicker => " [Enter] Next Step | [Esc] Quit ",
+        ActiveStep::BinaryPicker => {
+            " [Enter] Next Step | [i] Toggle Systemd/OpenRC | [Esc] Quit "
+        }
         ActiveStep::ServiceConfig => {
-            " [Tab / Up/Down] Select Field | [Enter] Next Step | [Esc] Back "
+            " [Tab / Up/Down] Select Field | [Enter] Next Step | [i] Toggle Systemd/OpenRC | [Esc] Back "
         }
         ActiveStep::PreviewDeploy => {
-            " [Tab / Up/Down] Select Action | [Enter] Execute Selected Action | [Esc] Back "
+            " [Tab / Up/Down] Select Action | [Enter] Execute | [i] Toggle Systemd/OpenRC | [Esc] Back "
         }
         ActiveStep::StatusModal => " [Enter / Esc] Close Log Modal ",
     };

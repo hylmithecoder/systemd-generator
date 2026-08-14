@@ -1,6 +1,6 @@
-use crate::device::SystemInfo;
-use crate::generator::{ServiceConfig, render_service_file};
-use crate::picker::{BinaryLocationInfo, resolve_binary_info};
+use crate::device::{InitSystem, SystemInfo};
+use crate::generator::{deploy_service_by_type, render_service_by_type, ServiceConfig};
+use crate::picker::{resolve_binary_info, BinaryLocationInfo};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,22 +57,25 @@ pub struct App {
     pub binary_path_input: String,
     pub binary_info: Option<BinaryLocationInfo>,
     pub sys_info: SystemInfo,
+    pub target_init_system: InitSystem,
     pub config: Option<ServiceConfig>,
     pub active_config_field: ConfigField,
     pub generated_service_content: String,
     pub status_message: String,
     pub is_error_status: bool,
-    pub preview_action_index: usize, // 0 = Save Local, 1 = Deploy to /etc/systemd/system/
+    pub preview_action_index: usize, // 0 = Save Local, 1 = Deploy systemwide
 }
 
 impl App {
     pub fn new() -> Self {
         let sys_info = SystemInfo::detect();
+        let target_init_system = sys_info.init_system;
         Self {
             step: ActiveStep::BinaryPicker,
             binary_path_input: String::new(),
             binary_info: None,
             sys_info,
+            target_init_system,
             config: None,
             active_config_field: ConfigField::UnitName,
             generated_service_content: String::new(),
@@ -80,6 +83,11 @@ impl App {
             is_error_status: false,
             preview_action_index: 0,
         }
+    }
+
+    pub fn toggle_init_system(&mut self) {
+        self.target_init_system = self.target_init_system.toggle();
+        self.refresh_generated_content();
     }
 
     pub fn update_binary_info(&mut self) {
@@ -105,7 +113,8 @@ impl App {
 
     pub fn refresh_generated_content(&mut self) {
         if let Some(cfg) = &self.config {
-            self.generated_service_content = render_service_file(cfg, &self.sys_info);
+            self.generated_service_content =
+                render_service_by_type(self.target_init_system, cfg, &self.sys_info);
         }
     }
 
@@ -221,10 +230,15 @@ impl App {
                 if self.preview_action_index == 0 {
                     // Save local
                     if let Some(cfg) = &self.config {
-                        let filename = if cfg.unit_name.ends_with(".service") {
-                            cfg.unit_name.clone()
-                        } else {
-                            format!("{}.service", cfg.unit_name)
+                        let filename = match self.target_init_system {
+                            InitSystem::Systemd => {
+                                if cfg.unit_name.ends_with(".service") {
+                                    cfg.unit_name.clone()
+                                } else {
+                                    format!("{}.service", cfg.unit_name)
+                                }
+                            }
+                            InitSystem::OpenRC => cfg.app_name.clone(),
                         };
                         let save_path = PathBuf::from(&filename);
                         match crate::generator::save_service_file(
@@ -248,7 +262,8 @@ impl App {
                 } else {
                     // Deploy to system
                     if let Some(cfg) = &self.config {
-                        match crate::generator::deploy_service_systemwide(
+                        match deploy_service_by_type(
+                            self.target_init_system,
                             cfg,
                             &self.generated_service_content,
                         ) {

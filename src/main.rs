@@ -1,6 +1,7 @@
 mod app;
 mod device;
 mod generator;
+mod openrc;
 mod picker;
 mod ui;
 
@@ -42,7 +43,7 @@ fn main() -> Result<()> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        println!("Error running systemdfilegenerator: {:?}", err);
+        println!("Error running servicefilegenerator: {:?}", err);
     }
 
     Ok(())
@@ -56,6 +57,15 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
             // Global Quit shortcut Ctrl+C
             if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                 return Ok(());
+            }
+
+            // Alt+I or F2 to toggle Init System (Systemd / OpenRC) anywhere
+            if (key.modifiers.contains(KeyModifiers::ALT)
+                && (key.code == KeyCode::Char('i') || key.code == KeyCode::Char('I')))
+                || key.code == KeyCode::F(2)
+            {
+                app.toggle_init_system();
+                continue;
             }
 
             match key.code {
@@ -78,6 +88,11 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                 KeyCode::Backspace => {
                     app.handle_backspace();
                 }
+                KeyCode::Char('i') | KeyCode::Char('I')
+                    if app.step == ActiveStep::PreviewDeploy =>
+                {
+                    app.toggle_init_system();
+                }
                 KeyCode::Char(c) => {
                     app.handle_char_input(c);
                 }
@@ -86,3 +101,4 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
         }
     }
 }
+
